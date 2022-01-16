@@ -24,6 +24,7 @@ contract PreGenesisData is Halt,ReentrancyGuard {
         uint256 originAsset;
         uint256 assetAndInterest;
         uint256 interestRateOrigin;
+        uint256 finalAsset;
     }
     // debt balance
     mapping(address=>assetInfo) public assetInfoMap;
@@ -34,7 +35,7 @@ contract PreGenesisData is Halt,ReentrancyGuard {
 
     bool public allowWithdraw;
     bool public allowDeposit;
-    uint256 public maxRate = 2e27;
+    uint256 public maxRate = 20e27;
     uint256 public minRate = rayDecimals;
     address public coin;
     address public targetSc;
@@ -48,4 +49,5 @@ contract PreGenesisData is Halt,ReentrancyGuard {
     event Deposit(address indexed sender, address indexed account, uint256 amount);
     event Withdraw(address indexed sender, address indexed account, uint256 amount);
     event TransferToTarget(address indexed sender, address indexed account, uint256 amount);
+    event TransferVCoinToTarget(address indexed sender, address indexed account, uint256 amount);
 }
