@@ -78,18 +78,20 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         emit Deposit(msg.sender,msg.sender,amount);
     }
 
-    function transferVCoin(uint256 _vCoinAmount)
+    function transferVCoin(address _user,uint256 _vCoinAmount)
         notHalted
         nonReentrant
         settleAccount(targetSc)
-        settleAccount(msg.sender)
+        settleAccount(_user)
         external
     {
-        assetInfoMap[msg.sender].assetAndInterest = assetInfoMap[msg.sender].assetAndInterest.sub(_vCoinAmount);
-        assetInfoMap[targetSc].assetAndInterest = assetInfoMap[targetSc].assetAndInterest.add(_vCoinAmount);
-        assetInfoMap[msg.sender].finalAsset = assetInfoMap[msg.sender].assetAndInterest;
+        require(msg.sender==targetSc,"wrong sender");
 
-        emit TransferToTarget(msg.sender,targetSc,assetInfoMap[msg.sender].assetAndInterest);
+        assetInfoMap[_user].assetAndInterest = assetInfoMap[_user].assetAndInterest.sub(_vCoinAmount);
+        assetInfoMap[targetSc].assetAndInterest = assetInfoMap[targetSc].assetAndInterest.add(_vCoinAmount);
+        assetInfoMap[_user].finalAsset = assetInfoMap[_user].assetAndInterest;
+
+        emit TransferToTarget(_user,targetSc,assetInfoMap[_user].assetAndInterest);
     }
 
     function withdraw()
