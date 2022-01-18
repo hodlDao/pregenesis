@@ -3,7 +3,7 @@ interface IMultiSignature{
     function getValidSignature(bytes32 msghash,uint256 lastIndex) external view returns(uint256);
 }
 contract multiSignatureClient{
-    bytes32 private constant multiSignaturePositon = keccak256("org.Defrost.multiSignature.storage");
+    bytes32 private constant multiSignaturePositon = keccak256("org.pregenesis.multiSignature.storage");
     constructor(address multiSignature) public {
         require(multiSignature != address(0),"multiSignatureClient : Multiple signature contract address is zero!");
         saveValue(multiSignaturePositon,uint256(multiSignature));
