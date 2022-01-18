@@ -13,15 +13,11 @@ contract PreGenesis is PreGenesisData,proxyOwner{
 
     constructor (address _multiSignature,
                  address _origin0,
-                 address _origin1,
-                 address _coin,
-                 address _targetSc
+                 address _origin1
                 )
         proxyOwner(_multiSignature, _origin0, _origin1)
         public
     {
-        coin = _coin;
-        targetSc = _targetSc;
         allowWithdraw = false;
         allowDeposit = false;
     }
