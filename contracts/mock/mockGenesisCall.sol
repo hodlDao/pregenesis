@@ -1,9 +1,3 @@
-pragma solidity ^0.5.16;
-
-
-import "./openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./openzeppelin/contracts/ownership/Ownable.sol";
-
 interface IPregenesis {
     function transferVCoin(address _user,uint256 _vCoinAmount) external;
     function getUserBalanceInfo(address _user) external view returns(uint256,uint256,uint256);
@@ -13,7 +7,10 @@ contract MockGenesisCall is Ownable {
     address public pregenesis;
 
 
-    constructor(address _pregenesis) public {
+    constructor() public {
+    }
+
+    function setPregenesis(address _pregenesis) public {
        pregenesis = _pregenesis;
     }
 
