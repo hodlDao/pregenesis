@@ -85,9 +85,9 @@ contract PreGenesis is PreGenesisData,proxyOwner{
 
         assetInfoMap[_user].assetAndInterest = assetInfoMap[_user].assetAndInterest.sub(_vCoinAmount);
         assetInfoMap[targetSc].assetAndInterest = assetInfoMap[targetSc].assetAndInterest.add(_vCoinAmount);
-        assetInfoMap[_user].finalAsset = assetInfoMap[_user].assetAndInterest;
+        assetInfoMap[_user].finalAsset =  assetInfoMap[_user].finalAsset.add(_vCoinAmount);
 
-        emit TransferToTarget(_user,targetSc,assetInfoMap[_user].assetAndInterest);
+        emit TransferToTarget(_user,targetSc,_vCoinAmount);
     }
 
     function withdraw()
