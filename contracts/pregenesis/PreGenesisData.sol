@@ -36,7 +36,7 @@ contract PreGenesisData is Halt,ReentrancyGuard {
     bool public allowWithdraw;
     bool public allowDeposit;
     uint256 public maxRate = 20e27;
-    uint256 public minRate = rayDecimals;
+    uint256 public minRate = 0;
     address public coin;
     address public targetSc;
 

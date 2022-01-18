@@ -23,7 +23,7 @@ contract PreGenesis is PreGenesisData,proxyOwner{
     }
 
     function initContract(uint256 _interestRate,uint256 _interestInterval,
-        uint256 _assetCeiling,uint256 _assetFloor) external originOnce{
+        uint256 _assetCeiling,uint256 _assetFloor) external onlyOrigin{
 
         assetCeiling = _assetCeiling;
         assetFloor = _assetFloor;
