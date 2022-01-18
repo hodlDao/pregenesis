@@ -1,6 +1,6 @@
 /**
  * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2020 defrost Protocol
+ * Copyright (C) 2020 pregenesis Protocol
  */
 pragma solidity ^0.5.16;
 
