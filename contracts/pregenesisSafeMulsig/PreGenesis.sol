@@ -27,15 +27,19 @@ contract PreGenesisWithSafe is PreGenesisData{
     }
 
     function initContract(uint256 _interestRate,uint256 _interestInterval,
-        uint256 _assetCeiling,uint256 _assetFloor) external onlyOrigin{
+        uint256 _assetCeiling,uint256 _assetFloor,address _coin,address _targetSc) external onlyOrigin{
 
         assetCeiling = _assetCeiling;
         assetFloor = _assetFloor;
         _setInterestInfo(_interestRate,_interestInterval,maxRate,rayDecimals);
+
+        coin = _coin;
+        targetSc = _targetSc;
+
         emit InitContract(msg.sender,_interestRate,_interestInterval,_assetCeiling,_assetFloor);
     }
 
-    function setCoinAndTarget(address _coin,address _targetSc) external onlyOrigin {
+    function setCoinAndTarget(address _coin,address _targetSc) public onlyOrigin {
         coin = _coin;
         targetSc = _targetSc;
     }
@@ -70,11 +74,13 @@ contract PreGenesisWithSafe is PreGenesisData{
         }
         IERC20(coin).safeTransferFrom(msg.sender, address(this), amount);
 
-        assetInfoMap[msg.sender].originAsset = assetInfoMap[msg.sender].originAsset.add(amount);
+        _interestSettlement();
 
-        uint256 newAmount = calBaseAmount(amount,accumulatedRate);
+        //user current vcoin amount + coin amount
+        uint256 newAmount =  calBaseAmount(amount,accumulatedRate);
         assetInfoMap[msg.sender].baseAsset = assetInfoMap[msg.sender].baseAsset.add(newAmount);
 
+        assetInfoMap[msg.sender].originAsset = assetInfoMap[msg.sender].originAsset.add(amount);
         totalAssetAmount = totalAssetAmount.add(amount);
 
         emit Deposit(msg.sender,msg.sender,amount);
@@ -86,17 +92,20 @@ contract PreGenesisWithSafe is PreGenesisData{
         external
     {
         require(msg.sender==targetSc,"wrong sender");
-        uint256 assetAndInterest = calInterestAmount(assetInfoMap[_user].baseAsset,accumulatedRate);
+
+        _interestSettlement();
+
+        uint256 assetAndInterest = getAssetBalance(_user);
+        uint256 burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
 
         if(assetAndInterest <= _vCoinAmount){
             assetInfoMap[_user].baseAsset = 0;
         }else if(assetAndInterest > _vCoinAmount){
-            uint256 burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
             assetInfoMap[_user].baseAsset = assetInfoMap[_user].baseAsset.sub(burnAmount);
         }
 
         //tartget sc only record vcoin balance,no interest
-        assetInfoMap[targetSc].baseAsset = assetInfoMap[targetSc].baseAsset.add(_vCoinAmount);
+        assetInfoMap[targetSc].baseAsset = assetInfoMap[targetSc].baseAsset.add(burnAmount);
 
         //record how many vcoind is transfer to targetSc
         assetInfoMap[_user].finalAsset =  assetInfoMap[_user].finalAsset.add(_vCoinAmount);
@@ -130,8 +139,8 @@ contract PreGenesisWithSafe is PreGenesisData{
         if(interestInterval == 0){
             return (0,0,0);
         }
-        uint256 vcoin = getAssetBalance(_user);
-        return (assetInfoMap[_user].originAsset,vcoin,assetInfoMap[_user].finalAsset);
+        uint256 vAsset = getAssetBalance(_user);
+        return (assetInfoMap[_user].originAsset,vAsset,assetInfoMap[_user].finalAsset);
     }
 
     function getInterestInfo()external view returns(uint256,uint256){
