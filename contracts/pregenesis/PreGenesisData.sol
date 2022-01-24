@@ -12,6 +12,8 @@ contract PreGenesisData is Halt,ReentrancyGuard {
     //Special decimals for calculation
     uint256 constant internal rayDecimals = 1e27;
 
+    uint256 constant internal InterestDecimals = 1e36;
+
     uint256 public totalAssetAmount;
     // Maximum amount of debt that can be generated with this collateral type
     uint256 public assetCeiling;       // [rad]
@@ -22,9 +24,8 @@ contract PreGenesisData is Halt,ReentrancyGuard {
     uint256 internal interestInterval;
     struct assetInfo{
         uint256 originAsset;
-        uint256 assetAndInterest;
-        uint256 interestRateOrigin;
-        uint256 finalAsset;
+        uint256 baseAsset;
+        uint256 finalAsset;//only used to record transfered vcoind amount
     }
     // debt balance
     mapping(address=>assetInfo) public assetInfoMap;

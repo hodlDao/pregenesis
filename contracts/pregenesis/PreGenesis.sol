@@ -56,7 +56,6 @@ contract PreGenesis is PreGenesisData,proxyOwner{
     function deposit(uint256 amount)
         notHalted
         nonReentrant
-        settleAccount(msg.sender)
         external
     {
         require(allowDeposit,"deposit is not allowed!");
@@ -68,7 +67,10 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         IERC20(coin).safeTransferFrom(msg.sender, address(this), amount);
 
         assetInfoMap[msg.sender].originAsset = assetInfoMap[msg.sender].originAsset.add(amount);
-        assetInfoMap[msg.sender].assetAndInterest = assetInfoMap[msg.sender].assetAndInterest.add(amount);
+
+        uint256 newAmount = calBaseAmount(amount,accumulatedRate);
+        assetInfoMap[msg.sender].baseAsset = assetInfoMap[msg.sender].baseAsset.add(newAmount);
+
         totalAssetAmount = totalAssetAmount.add(amount);
 
         emit Deposit(msg.sender,msg.sender,amount);
@@ -77,34 +79,43 @@ contract PreGenesis is PreGenesisData,proxyOwner{
     function transferVCoin(address _user,uint256 _vCoinAmount)
         notHalted
         nonReentrant
-        settleAccount(targetSc)
-        settleAccount(_user)
         external
     {
         require(msg.sender==targetSc,"wrong sender");
+        uint256 assetAndInterest = calInterestAmount(assetInfoMap[_user].baseAsset,accumulatedRate);
 
-        assetInfoMap[_user].assetAndInterest = assetInfoMap[_user].assetAndInterest.sub(_vCoinAmount);
-        assetInfoMap[targetSc].assetAndInterest = assetInfoMap[targetSc].assetAndInterest.add(_vCoinAmount);
+        if(assetAndInterest <= _vCoinAmount){
+            assetInfoMap[_user].baseAsset = 0;
+        }else if(assetAndInterest > _vCoinAmount){
+            uint256 burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
+            assetInfoMap[_user].baseAsset = assetInfoMap[_user].baseAsset.sub(burnAmount);
+        }
+
+        //tartget sc only record vcoin balance,no interest
+        assetInfoMap[targetSc].baseAsset = assetInfoMap[targetSc].baseAsset.add(_vCoinAmount);
+
+        //record how many vcoind is transfer to targetSc
         assetInfoMap[_user].finalAsset =  assetInfoMap[_user].finalAsset.add(_vCoinAmount);
 
-        emit TransferToTarget(_user,targetSc,_vCoinAmount);
+        emit TransferVCoinToTarget(_user,targetSc,_vCoinAmount);
     }
 
+    //only transfer user's usdc coin if allowed to withdraw
     function withdraw()
          notHalted
          nonReentrant
-         settleAccount(msg.sender)
          external
     {
         require(allowWithdraw,"withdraw is not allowed!");
 
         uint256 amount = assetInfoMap[msg.sender].originAsset;
         assetInfoMap[msg.sender].originAsset = 0;
-        assetInfoMap[msg.sender].assetAndInterest = 0;
+        assetInfoMap[msg.sender].baseAsset = 0;
         IERC20(coin).safeTransfer(msg.sender, amount);
         emit Withdraw(coin,msg.sender,amount);
     }
 
+    //transfer usdc coin in sc to target sc if multisig permit
     function TransferCoinToTarget() public onlyOrigin {
         uint256 coinBal = IERC20(coin).balanceOf(address(this));
         IERC20(coin).safeTransfer(targetSc, coinBal);
@@ -112,11 +123,10 @@ contract PreGenesis is PreGenesisData,proxyOwner{
     }
 
     function getUserBalanceInfo(address _user)public view returns(uint256,uint256,uint256){
-        if(assetInfoMap[_user].interestRateOrigin == 0 || interestInterval == 0){
+        if(interestInterval == 0){
             return (0,0,0);
         }
-        uint256 newRate = newAccumulatedRate();
-        uint256 vcoin = assetInfoMap[_user].assetAndInterest.mul(newRate)/assetInfoMap[_user].interestRateOrigin;
+        uint256 vcoin = getAssetBalance(_user);
         return (assetInfoMap[_user].originAsset,vcoin,assetInfoMap[_user].finalAsset);
     }
 
@@ -140,6 +150,9 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         emit SetInterestInfo(msg.sender,_interestRate,_interestInterval);
     }
 
+    function getAssetBalance(address account)public view returns(uint256){
+        return calInterestAmount(assetInfoMap[account].baseAsset,newAccumulatedRate());
+    }
 
     function rpower(uint256 x, uint256 n, uint256 base) internal pure returns (uint256 z) {
         assembly {
@@ -165,42 +178,38 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         }
     }
 
+//    modifier settleInterest(){
+//        _interestSettlement();
+//        _;
+//    }
+    /**
+     * @dev the auxiliary function for _mineSettlementAll.
+     */
     function _interestSettlement()internal{
         uint256 _interestInterval = interestInterval;
         if (_interestInterval>0){
-            uint256 newRate = newAccumulatedRate();
-            //totalAssetAmount = totalAssetAmount.mul(newRate)/accumulatedRate;
-            accumulatedRate = newRate;
+            accumulatedRate = newAccumulatedRate();
             latestSettleTime = currentTime()/_interestInterval*_interestInterval;
         }else{
             latestSettleTime = currentTime();
         }
     }
 
-    function newAccumulatedRate() internal view returns (uint256){
-        uint256 newRate = rpower(uint256(1e27+interestRate),(currentTime()-latestSettleTime)/interestInterval,rayDecimals);
+    function newAccumulatedRate()internal  view returns (uint256){
+        uint256 newRate = rpower(uint256(rayDecimals+interestRate),(currentTime()-latestSettleTime)/interestInterval,rayDecimals);
         return accumulatedRate.mul(newRate)/rayDecimals;
     }
 
-    function settleUserInterest(address account)internal{
-        assetInfoMap[account].assetAndInterest = _settlement(account);
-        assetInfoMap[account].interestRateOrigin = accumulatedRate;
-    }
-
-    function _settlement(address account) internal view returns (uint256) {
-        if (assetInfoMap[account].interestRateOrigin == 0){
-            return 0;
-        }
-        return assetInfoMap[account].assetAndInterest.mul(accumulatedRate)/assetInfoMap[account].interestRateOrigin;
-    }
-
-    modifier settleAccount(address account){
-        _interestSettlement();
-        settleUserInterest(account);
-        _;
-    }
-    
     function currentTime() internal view returns (uint256){
         return block.timestamp;
     }
+
+    function calBaseAmount(uint256 amount, uint256 _interestRate) internal pure returns(uint256){
+        return amount.mul(InterestDecimals)/_interestRate;
+    }
+
+    function calInterestAmount(uint256 amount, uint256 _interestRate) internal pure returns(uint256){
+        return amount.mul(_interestRate)/InterestDecimals;
+    }
+
 }
