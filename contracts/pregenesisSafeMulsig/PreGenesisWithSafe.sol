@@ -121,6 +121,8 @@ contract PreGenesisWithSafe is PreGenesisData{
         assetInfoMap[_user].finalAsset =  assetInfoMap[_user].finalAsset.add(_vCoinAmount);
 
         emit TransferVCoinToTarget(_user,targetSc,_vCoinAmount);
+		
+		return _vCoinAmount;
     }
 
     //only transfer user's usdc coin if allowed to withdraw
