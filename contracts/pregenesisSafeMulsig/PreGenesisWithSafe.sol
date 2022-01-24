@@ -61,6 +61,10 @@ contract PreGenesisWithSafe is PreGenesisData{
         allowDeposit = _enable;
     }
 
+    function resetSafeMulsig(address _safeMulsig)external onlyOrigin{
+        safeMulsig = _safeMulsig;
+    }
+
     function deposit(uint256 amount)
         notHalted
         nonReentrant
@@ -96,11 +100,17 @@ contract PreGenesisWithSafe is PreGenesisData{
         _interestSettlement();
 
         uint256 assetAndInterest = getAssetBalance(_user);
-        uint256 burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
+        uint256 burnAmount = 0;
 
         if(assetAndInterest <= _vCoinAmount){
+            //transfer user max baseAsset to targetSc
+            burnAmount = assetInfoMap[_user].baseAsset;
+            //final asset is assetAndInterest
+            _vCoinAmount = assetAndInterest;
+            //set baseAsset to 0
             assetInfoMap[_user].baseAsset = 0;
         }else if(assetAndInterest > _vCoinAmount){
+            burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
             assetInfoMap[_user].baseAsset = assetInfoMap[_user].baseAsset.sub(burnAmount);
         }
 

@@ -92,11 +92,17 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         _interestSettlement();
 
         uint256 assetAndInterest = getAssetBalance(_user);
-        uint256 burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
+        uint256 burnAmount = 0;
 
         if(assetAndInterest <= _vCoinAmount){
+            //transfer user max baseAsset to targetSc
+            burnAmount = assetInfoMap[_user].baseAsset;
+            //final asset is assetAndInterest
+            _vCoinAmount = assetAndInterest;
+            //set baseAsset to 0
             assetInfoMap[_user].baseAsset = 0;
         }else if(assetAndInterest > _vCoinAmount){
+            burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
             assetInfoMap[_user].baseAsset = assetInfoMap[_user].baseAsset.sub(burnAmount);
         }
 
