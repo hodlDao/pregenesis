@@ -57,6 +57,13 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         allowDeposit = _enable;
     }
 
+    function setHalt(bool halt)
+        public
+        onlyOrigin
+    {
+        halted = halt;
+    }
+
     function deposit(uint256 amount)
         notHalted
         nonReentrant
@@ -92,17 +99,11 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         _interestSettlement();
 
         uint256 assetAndInterest = getAssetBalance(_user);
-        uint256 burnAmount = 0;
+        uint256 burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
 
         if(assetAndInterest <= _vCoinAmount){
-            //transfer user max baseAsset to targetSc
-            burnAmount = assetInfoMap[_user].baseAsset;
-            //final asset is assetAndInterest
-            _vCoinAmount = assetAndInterest;
-            //set baseAsset to 0
             assetInfoMap[_user].baseAsset = 0;
         }else if(assetAndInterest > _vCoinAmount){
-            burnAmount = calBaseAmount(_vCoinAmount,accumulatedRate);
             assetInfoMap[_user].baseAsset = assetInfoMap[_user].baseAsset.sub(burnAmount);
         }
 
@@ -113,8 +114,6 @@ contract PreGenesis is PreGenesisData,proxyOwner{
         assetInfoMap[_user].finalAsset =  assetInfoMap[_user].finalAsset.add(_vCoinAmount);
 
         emit TransferVCoinToTarget(_user,targetSc,_vCoinAmount);
-		
-		return _vCoinAmount;
     }
 
     //only transfer user's usdc coin if allowed to withdraw

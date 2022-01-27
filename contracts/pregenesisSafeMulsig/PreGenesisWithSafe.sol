@@ -64,6 +64,14 @@ contract PreGenesisWithSafe is PreGenesisData{
     function resetSafeMulsig(address _safeMulsig)external onlyOrigin{
         safeMulsig = _safeMulsig;
     }
+    /// @notice function Emergency situation that requires
+    /// @notice contribution period to stop or not.
+    function setHalt(bool halt)
+        public
+        onlyOrigin
+    {
+        halted = halt;
+    }
 
     function deposit(uint256 amount)
         notHalted
@@ -94,6 +102,7 @@ contract PreGenesisWithSafe is PreGenesisData{
         notHalted
         nonReentrant
         external
+        returns(uint256)
     {
         require(msg.sender==targetSc,"wrong sender");
 
@@ -121,8 +130,8 @@ contract PreGenesisWithSafe is PreGenesisData{
         assetInfoMap[_user].finalAsset =  assetInfoMap[_user].finalAsset.add(_vCoinAmount);
 
         emit TransferVCoinToTarget(_user,targetSc,_vCoinAmount);
-		
-		return _vCoinAmount;
+
+        return _vCoinAmount;
     }
 
     //only transfer user's usdc coin if allowed to withdraw

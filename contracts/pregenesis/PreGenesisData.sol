@@ -7,7 +7,7 @@ pragma solidity ^0.5.16;
 import "../modules/ReentrancyGuard.sol";
 import "../modules/Halt.sol";
 
-contract PreGenesisData is Halt,ReentrancyGuard {
+contract PreGenesisData is ReentrancyGuard {
 
     //Special decimals for calculation
     uint256 constant internal rayDecimals = 1e27;
@@ -40,6 +40,19 @@ contract PreGenesisData is Halt,ReentrancyGuard {
     uint256 public minRate = rayDecimals;
     address public coin;
     address public targetSc;
+
+    bool public halted = false;
+    modifier notHalted() {
+        require(!halted,"This contract is halted");
+        _;
+    }
+
+    modifier isHalted() {
+        require(halted,"This contract is not halted");
+        _;
+    }
+
+
 
     event SetInterestInfo(address indexed from,uint256 _interestRate,uint256 _interestInterval);
     event AddAsset(address indexed recieptor,uint256 amount);
